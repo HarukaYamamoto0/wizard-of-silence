@@ -1,0 +1,9 @@
+﻿{
+  "name": "Wizard Of Silence",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/HarukaYamamoto0/wizard-of-silence",
+  "description": "Just a simple mod for the game Mage Arena that allows you to cast spells using the mouse.",
+  "dependencies": [
+    "BepInEx-BepInExPack-5.4.2100"
+  ]
+}
