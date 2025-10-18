@@ -1,49 +1,59 @@
-﻿# wizard-of-silence
-
-# 🪄 SpellShortcut — Mouse-Casting Mod for Mage Arena
+# 🪄 Wizard Of Silence
 
 > **"Why chant your spells when you can just *click*?"**
 
-SpellShortcut é um mod para **Mage Arena**, desenvolvido com **BepInEx** e **Harmony**, que permite lançar feitiços e se curar diretamente pelos botões do mouse — sem menus, sem voz, sem enrolação.
+**Wizard Of Silence** (class name: `SpellShortcut`) is a mod for **Mage Arena** built with **BepInEx** and **Harmony**.  
+It allows you to cast spells and heal yourself directly using your mouse buttons — no menus, no voice commands, no nonsense.
 
-## ✨ Funcionalidades
+Originally, I wanted it to cast **Magic Missile**, but its logic turned out to be more complex than I expected.  
+If someone wants to make a pull request adding that feature, I’d be *immensely grateful*. ❤️  
+Also, keep in mind: even though there’s healing, **you can still die** — this mod doesn’t make you immortal.
 
-| Ação | Botão | Efeito |
-|------|--------|---------|
-| 🔥 Lançar Fireball | **Mouse0 (Esquerdo)** | Invoca um poderoso projétil de fogo diretamente |
-| ❄️ Lançar Frostbolt | **Mouse1 (Direito)** | Atira uma rajada de gelo para congelar seus inimigos |
-| 🥣 Beber Sopa de Madeira | **Mouse3 (Botão lateral)** | Restaura instantaneamente **150 HP** — a cura dos bravos |
+## ✨ Features
 
-## ⚙️ Como funciona
+| Action | Button | Effect |
+|--------|---------|--------|
+| 🔥 Cast Fireball | **Mouse0 (Left Click)** | Launches a powerful fire projectile instantly |
+| ❄️ Cast Frostbolt | **Mouse1 (Right Click)** | Shoots a freezing projectile to slow your enemies |
+| 🥣 Drink Wooden Soup | **Mouse3 (Side Button)** | Instantly restores **150 HP** — the brave man’s heal |
 
-SpellShortcut intercepta o loop de entrada da Unity (`Update()`) e:
-1. Detecta as instâncias de `VoiceControlListener` e `MageBookController`;
-2. Usa reflexão para forçar a página correta do grimório (`ForceFlipServer`);
-3. Invoca diretamente os métodos internos de cast (`CastFireball`, `CastFrostBolt`);
-4. No botão lateral, acessa o jogador (`PlayerMovement`) e chama `nonnetworkedheal(150f)`.
+## ⚙️ How It Works
 
-Isso elimina completamente a dependência de comandos de voz — ideal para quem prefere gameplay ágil e silencioso.
+`SpellShortcut` hooks into Unity’s main update loop (`Update()`) and:
 
-## 📦 Instalação
+1. Finds the game’s instances of `VoiceControlListener` and `MageBookController`.  
+2. Uses reflection to force the correct spellbook page (`ForceFlipServer`).  
+3. Invokes the internal casting methods (`CastFireball`, `CastFrostBolt`).  
+4. On the side mouse button, accesses the player (`PlayerMovement`) and calls `nonnetworkedheal(150f)`.
 
-1. Certifique-se de ter o **BepInEx 5.4+** instalado em `MageArena.exe`.
-2. Copie o arquivo `SpellShortcut.dll` para a pasta:
+This completely removes the dependency on voice commands — perfect for players who prefer **quiet, fast, and click-based magic**.
+
+## 📦 Installation
+
+1. Make sure **BepInEx 5.4+** is installed in your `MageArena.exe` directory.  
+2. Copy the compiled `SpellShortcut.dll` file into:
 ```
 
 MageArena/BepInEx/plugins/
 
+```
+3. Launch the game.  
+4. Look for the console message:  
+```
+
+[Info : BepInEx] SpellShortcut loaded!
+
 ````
-3. Inicie o jogo normalmente.
-4. Veja a mensagem `SpellShortcut loaded!` no console do BepInEx — e comece a clicar.
+Then… start clicking.
 
-## 🧙‍♀️ Requisitos
+## 🧙‍♀️ Requirements
 
-- **Jogo:** Mage Arena  
+- **Game:** Mage Arena  
 - **Framework:** [BepInEx 5.x](https://github.com/BepInEx/BepInEx)  
-- **Biblioteca:** [Harmony 2.x](https://github.com/pardeike/Harmony)  
-- **Compatibilidade:** Windows x64 / Unity 2023+  
+- **Library:** [Harmony 2.x](https://github.com/pardeike/Harmony)  
+- **Compatible with:** Windows x64 / Unity 2023+
 
-## 💀 Código-fonte
+## 💀 Core Logic Example
 
 ```csharp
 if (Input.GetKeyDown(KeyCode.Mouse0))
@@ -63,39 +73,42 @@ else if (Input.GetKeyDown(KeyCode.Mouse3))
 }
 ````
 
-Três linhas, três poderes.
-Simplicidade é magia pura.
+Three lines. Three powers.
+**Simplicity is true magic.**
 
-## 🧪 Desenvolvimento
+## 🧪 Development
 
-Este mod foi construído usando:
+This mod was built using:
 
 * **C# 11**
 * **.NET Framework 4.7.2**
 * **Unity API 2023.x**
 * **BepInEx Core**
-* **HarmonyLib** (para patching)
+* **HarmonyLib** (for patching)
 
-Compile com o SDK configurado para `x64` e referencie:
+When compiling, make sure your SDK is set to `x64` and reference the following assemblies:
 
 * `UnityEngine.dll`
 * `BepInEx.dll`
 * `HarmonyLib.dll`
-* As DLLs de Mage Arena (`Assembly-CSharp.dll`, `UnityEngine.CoreModule.dll`)
+* Mage Arena’s own assemblies:
 
-## 🩸 Licença
+  * `Assembly-CSharp.dll`
+  * `UnityEngine.CoreModule.dll`
 
-Este projeto é disponibilizado sob a **MIT License**.
-Use, modifique e distribua livremente — apenas lembre de dar crédito ao autor original: **harukadev** 🦇
+## 🩸 License
 
-## ☕ Créditos
+This project is released under the **MIT License**.
+You’re free to use, modify, and distribute it — just give proper credit to the original author: **harukadev** 🦇
 
-* **Desenvolvimento:** harukadev
-* **Motor:** Unity 2023
+## ☕ Credits
+
+* **Developer:** harukadev
+* **Engine:** Unity 2023
 * **Framework:** BepInEx + Harmony
-* **Inspiração:** “Eu só queria clicar pra soltar magia.”
+* **Inspiration:** “I just wanted to click to cast magic.”
 
-### 💬 Nota final
+### 💬 Final Note
 
-> *“Fireball com o esquerdo, Frostbolt com o direito, e uma boa sopa quando tudo dá errado.”*
+> *“Fireball on the left, Frostbolt on the right, and a good soup when everything goes wrong.”*
 > — *harukadev, 2025*
