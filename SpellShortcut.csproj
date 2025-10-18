@@ -43,4 +43,18 @@
     <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
         <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all"/>
     </ItemGroup>
+
+    <Target Name="CopyToDownloadsWithTimestamp" AfterTargets="Build">
+        <PropertyGroup>
+            <Timestamp>$([System.DateTime]::Now.ToString("yyyyMMdd_HHmmss"))</Timestamp>
+            <DownloadsPath>$(USERPROFILE)\Downloads</DownloadsPath>
+            <OutputFileName>$(AssemblyName)_$(Timestamp).dll</OutputFileName>
+        </PropertyGroup>
+
+        <Copy SourceFiles="$(TargetPath)"
+              DestinationFiles="$(DownloadsPath)\$(OutputFileName)"
+              SkipUnchangedFiles="false"/>
+
+        <Message Text="DLL copiada para: $(DownloadsPath)\$(OutputFileName)" Importance="high"/>
+    </Target>
 </Project>

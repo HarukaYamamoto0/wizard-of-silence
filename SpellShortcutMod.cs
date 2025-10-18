@@ -1,10 +1,8 @@
 ﻿using System.Reflection;
-using System.Reflection.Emit;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine;
-using FishNet.Object; // Importante para [ServerRpc]
 
 namespace SpellShortcut
 {
@@ -17,40 +15,73 @@ namespace SpellShortcut
 
         private VoiceControlListener? _voiceListener;
 
+        /// <summary>
+        /// Initializes the plugin by setting up the logger instance, applying Harmony patches,
+        /// and logging a confirmation message indicating successful loading of the plugin.
+        /// </summary>
         private void Awake()
         {
             LoggerInstance = Logger;
             harmony.PatchAll();
-            Logger.LogInfo("SpellShortcut loaded with server-agnostic RPC patch!");
+            Logger.LogInfo("SpellShortcut loaded!");
         }
 
+        /// <summary>
+        /// Processes game loop logic to handle user input events for selecting spells,
+        /// casting specific spells, or performing a healing action for the player.
+        /// </summary>
         private void Update()
         {
             _voiceListener ??= FindFirstObjectByType<VoiceControlListener>();
             var mageBook = FindFirstObjectByType<MageBookController>();
 
-            if (_voiceListener is null || mageBook is null)
-                return;
+            if (_voiceListener is null || mageBook is null) return;
 
-            if (Input.GetMouseButton(0))
+            if (Input.GetKeyDown(KeyCode.Mouse0))
             {
-                var playerMovement = FindFirstObjectByType<PlayerMovement>();
-                playerMovement.MushroomJump();
                 ForceSelectSpell(mageBook, 1);
-                TryCast(_voiceListener.CastFireball, "Fireball");
+                TryCast(_voiceListener.CastFireball, "fireball");
             }
-            else if (Input.GetMouseButton(1))
+            else if (Input.GetKeyDown(KeyCode.Mouse1))
             {
                 ForceSelectSpell(mageBook, 2);
-                TryCast(_voiceListener.CastFrostBolt, "Frostbolt");
+                TryCast(_voiceListener.CastFrostBolt, "frostbolt");
             }
-            else if (Input.GetMouseButton(2))
+            else if (Input.GetKeyDown(KeyCode.Mouse3))
             {
-                ForceSelectSpell(mageBook, 3);
-                TryCast(_voiceListener.CastMagicMissle, "Magic Missile");
+                var player = FindFirstObjectByType<PlayerMovement>();
+                player.nonnetworkedheal(150f);
             }
         }
 
+        /// <summary>
+        /// Forces the selection of a specific spell page in the MageBookController
+        /// and triggers a server-side flipping logic.
+        /// </summary>
+        /// <param name="mageBook">The MageBookController instance used to manage spell pages.</param>
+        /// <param name="page">The number of the page to be forcefully selected.</param>
+        private static void ForceSelectSpell(MageBookController mageBook, int page)
+        {
+            try
+            {
+                var last = mageBook.LastPressedPage;
+                mageBook.LastPressedPage = page;
+                var method = mageBook.GetType().GetMethod("ForceFlipServer",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                method?.Invoke(mageBook, [page, last]);
+            }
+            catch (Exception ex)
+            {
+                LoggerInstance?.LogError($"[ForceSelectSpell] Error forcing spell page: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Attempts to invoke a specific spell-casting method and handles any exceptions
+        /// that occur during the execution, logging appropriate error messages.
+        /// </summary>
+        /// <param name="castMethod">The delegate method responsible for executing the spell cast logic. Can be null.</param>
+        /// <param name="spellName">The identifier for the spell being cast, used for logging purposes.</param>
         private static void TryCast(Action? castMethod, string spellName)
         {
             try
@@ -59,75 +90,8 @@ namespace SpellShortcut
             }
             catch (Exception e)
             {
-                LoggerInstance?.LogError($"Error casting {spellName}: {e}");
+                LoggerInstance?.LogError($"[TryCast] Error casting {spellName}: {e}");
             }
-        }
-
-        private static void ForceSelectSpell(MageBookController mageBook, int page)
-        {
-            try
-            {
-                int last = mageBook.LastPressedPage;
-                mageBook.LastPressedPage = page;
-
-                // chama o novo método que adicionamos via patch
-                var method = mageBook.GetType()
-                    .GetMethod("ForceFlipServer",
-                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                method?.Invoke(mageBook, [page, last]);
-            }
-            catch (Exception ex)
-            {
-                LoggerInstance?.LogError($"Error forcing spell page: {ex}");
-            }
-        }
-
-        // ===========================
-        // PATCH INJETADO NO JOGO
-        // ===========================
-
-        [HarmonyPatch(typeof(MageBookController), "Awake")]
-        public static class MageBookController_Awake_Patch
-        {
-            // ReSharper disable once ArrangeTypeMemberModifiers
-            static void Postfix(MageBookController __instance)
-            {
-                // Se o método não existe, injeta dinamicamente
-                var type = __instance.GetType();
-                var hasMethod = type.GetMethod("ForceFlipServer",
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-
-                if (hasMethod != null) return;
-
-                // cria o método em runtime
-                var dynMethod = new DynamicMethod(
-                    "ForceFlipServer",
-                    null,
-                    [typeof(int), typeof(int)],
-                    typeof(MageBookController));
-
-                var il = dynMethod.GetILGenerator();
-                il.Emit(OpCodes.Ldarg_0); // this
-                il.Emit(OpCodes.Ldarg_1); // page
-                il.Emit(OpCodes.Ldarg_2); // last
-                var original = type.GetMethod("ServerFlipPage", BindingFlags.Instance | BindingFlags.NonPublic);
-                if (original != null) il.Emit(OpCodes.Call, original);
-                il.Emit(OpCodes.Ret);
-
-                // adiciona o método dinamicamente (conceitualmente, isso funciona melhor com HarmonyLib. MethodPatcher)
-                // Em runtime real, você pode usar o AccessTools ou MonoMod. RuntimeDetour para injetar.
-                LoggerInstance?.LogInfo("[Patch] ForceFlipServer added to MageBookController (ownership bypass)");
-            }
-        }
-
-        // Exemplo de alternativa com reflexão se você quiser editar manualmente:
-        [ServerRpc(RequireOwnership = false)]
-        private void ForceFlipServer(int page, int last)
-        {
-            // fallback se não quiser usar IL dynamic
-            var mageBook = FindFirstObjectByType<MageBookController>();
-            mageBook?.GetType().GetMethod("ServerFlipPage",
-                BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(mageBook, [page, last]);
         }
     }
 }
